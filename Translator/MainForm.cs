@@ -290,7 +290,6 @@ namespace Translator
                     dictionary[currentWord].Definitions += definition.ToString();
                     definition.Clear();
                 }
-                tbWord.Text = dictionary.Count.ToString();
             });
         }
     }
