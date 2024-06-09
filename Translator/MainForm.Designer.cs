@@ -123,7 +123,7 @@
             // tbWord
             // 
             this.tbWord.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(32)))), ((int)(((byte)(32)))), ((int)(((byte)(32)))));
-            this.tbWord.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.tbWord.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tbWord.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tbWord.Font = new System.Drawing.Font("Microsoft Sans Serif", 13.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.tbWord.ForeColor = System.Drawing.Color.White;
@@ -134,6 +134,7 @@
             this.tbWord.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.tbWord.Size = new System.Drawing.Size(276, 398);
             this.tbWord.TabIndex = 13;
+            this.tbWord.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TB_KeyDown);
             // 
             // panel1
             // 
@@ -241,11 +242,11 @@
             this.cbWrap2.CheckState = System.Windows.Forms.CheckState.Checked;
             this.cbWrap2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cbWrap2.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.cbWrap2.Location = new System.Drawing.Point(191, 207);
+            this.cbWrap2.Location = new System.Drawing.Point(132, 207);
             this.cbWrap2.Name = "cbWrap2";
-            this.cbWrap2.Size = new System.Drawing.Size(82, 29);
+            this.cbWrap2.Size = new System.Drawing.Size(141, 29);
             this.cbWrap2.TabIndex = 22;
-            this.cbWrap2.Text = "Wrap";
+            this.cbWrap2.Text = "Xuống dòng";
             this.cbWrap2.UseVisualStyleBackColor = true;
             this.cbWrap2.CheckedChanged += new System.EventHandler(this.cbWrap2_CheckedChanged);
             // 
@@ -258,9 +259,9 @@
             this.cbWrap.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
             this.cbWrap.Location = new System.Drawing.Point(0, 207);
             this.cbWrap.Name = "cbWrap";
-            this.cbWrap.Size = new System.Drawing.Size(82, 29);
+            this.cbWrap.Size = new System.Drawing.Size(141, 29);
             this.cbWrap.TabIndex = 21;
-            this.cbWrap.Text = "Wrap";
+            this.cbWrap.Text = "Xuống dòng";
             this.cbWrap.UseVisualStyleBackColor = true;
             this.cbWrap.CheckedChanged += new System.EventHandler(this.cbWrap_CheckedChanged);
             // 

@@ -14,9 +14,10 @@ namespace Translator
 {
     public partial class MainForm : Form
     {
-        HttpClient httpClient = new HttpClient();
-        Dictionary<string, string> dictionary;
-        string temp;
+        private HttpClient httpClient = new HttpClient();
+        // Find ignore case
+        Dictionary<string, WordEntry> dictionary = new Dictionary<string, WordEntry>(StringComparer.OrdinalIgnoreCase);
+
         public MainForm()
         {
             InitializeComponent();
@@ -26,11 +27,13 @@ namespace Translator
             this.Icon = Resources.language;
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private async void Form1_Load(object sender, EventArgs e)
         {
             cbFrom.SelectedIndex = 0;
             cbTo.SelectedIndex = 0;
             beforeTB.Focus();
+
+            await LoadDictionary();
         }
 
         private void btnChuanHoa_Click(object sender, EventArgs e)
@@ -40,7 +43,7 @@ namespace Translator
                 beforeTB.ResetText();
                 return;
             }
-            beforeTB.Text = normalizeParagraph(beforeTB.Text);
+            beforeTB.Text = NormalizeParagraph(beforeTB.Text);
         }
 
         private void TB_KeyDown(object sender, KeyEventArgs e)
@@ -87,21 +90,20 @@ namespace Translator
                 beforeTB.ResetText();
                 return;
             }
-            afterTB.Text = await TranslateText(beforeTB.Text);
+            afterTB.Text = await TranslateTextOnline(beforeTB.Text);
         }
 
         private async void btnDichSelection_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(beforeTB.SelectedText))
                 return;
-            afterTB.Text = await TranslateText(beforeTB.SelectedText);
+            afterTB.Text = await TranslateTextOnline(beforeTB.SelectedText);
+            tbWord.Text = TranslateWord(beforeTB.SelectedText);
         }
 
         private void btnSwap_Click(object sender, EventArgs e)
         {
-            string temp = beforeTB.Text;
-            beforeTB.Text = afterTB.Text;
-            afterTB.Text = temp;
+            (afterTB.Text, beforeTB.Text) = (beforeTB.Text, afterTB.Text);
             beforeTB.Focus();
         }
 
@@ -122,26 +124,26 @@ namespace Translator
             afterTB.WordWrap = cbWrap2.Checked;
         }
 
-        private string normalizeParagraph(string text)
+        private string NormalizeParagraph(string text)
         {
             char[] trimChars = { '\n', '\u0002', '.', ' ' };
             string[] sentences = text.Trim(trimChars).Split('.');
-            IEnumerable<string> normalizedSentences = sentences.Select(normalizePhrase);
+            IEnumerable<string> normalizedSentences = sentences.Select(NormalizePhrase);
             return string.Join(". ", normalizedSentences).TrimEnd('.') + ".";
         }
 
-        private string normalizePhrase(string text)
+        private string NormalizePhrase(string text)
         {
             return Regex.Split(text.Trim(), "\\s+").Aggregate(new StringBuilder(), (a, b) =>
             {
                 //a.Append(b.Replace("",""));
-                a.Append(Regex.Replace(b, "[\u0002\n]+",""));
+                a.Append(Regex.Replace(b, "[\u0002\n]+", ""));
                 a.Append(' ');
                 return a;
             }).ToString().TrimEnd();
         }
 
-        private async Task<string> TranslateText(string input)
+        private async Task<string> TranslateTextOnline(string input)
         {
             string url = string.Format(
                 "https://translate.googleapis.com/translate_a/single?client=gtx&sl={0}&tl={1}&dt=t&q={2}",
@@ -172,7 +174,7 @@ namespace Translator
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            switch(e.KeyCode)
+            switch (e.KeyCode)
             {
                 case Keys.F1:
                     btnChuanHoa_Click(null, null);
@@ -196,77 +198,100 @@ namespace Translator
 
         private string TranslateWord(string input)
         {
-            char[] trimChars = { ' ', '.', ',', ';' ,'_','-','?','!','\"','\'','@','/','(',')','{', '}'};
+            char[] trimChars = { ' ', '.', ',', ';', '_', '-', '?', '!', '\"', '\'', '@', '/', '(', ')', '{', '}', '\n'};
             string toFind = input.Trim(trimChars);
-            int start = Resources.anhviet109K.IndexOf($"@{toFind}",StringComparison.OrdinalIgnoreCase);
-            int end = Resources.anhviet109K.IndexOf('@', start + 1);
-            if (start == -1)
+
+            if (dictionary.ContainsKey(toFind))
             {
-                return "Not found!";
+                KeyValuePair<string, WordEntry> pair = dictionary.FirstOrDefault(e => e.Key.Equals(toFind, StringComparison.OrdinalIgnoreCase));
+                return $"@{pair.Key} {pair.Value.Pronunciation}{Environment.NewLine}" +
+                    $"{pair.Value.Definitions}";
             }
-            else if (end == -1)
-            {
-                return ProcessTranslatedWord(Resources.anhviet109K.Substring(start));
-            }
-            return ProcessTranslatedWord(Resources.anhviet109K.Substring(start, end - start));
+            return "Not found!";
         }
 
-        private string ProcessTranslatedWord(string input)
+        private string ProcessDefinitionLine(string line)
         {
-            string[] lines = input.TrimEnd().Split('\n');
+            StringBuilder sb = new StringBuilder();
             int tabNum = 0;
-            return lines.Aggregate(new StringBuilder(), (sb, line) =>
+            switch (line[0])
             {
-                switch (line[0])
-                { 
-                    case '@':
-                        tabNum = 0;
-                        break;
-                    case '*':
-                        tabNum = 1;
-                        break;
-                    case '-': case '!':
-                        tabNum = 2;
-                        break;
-                    case '=':
-                        tabNum = 3;
-                        break;
-                }
-                sb.Append(new string(' ',tabNum * 4) + line + Environment.NewLine);
-                return sb;
-            }).ToString();
+                case '*':
+                    sb.Append(Environment.NewLine);
+                    tabNum = 1;
+                    break;
+                case '!':
+                    sb.Append(Environment.NewLine);
+                    tabNum = 2;
+                    break;
+                case '-':
+                    tabNum = 2;
+                    break;
+                case '=':
+                    tabNum = 3;
+                    break;
+            }
+            sb.Append(new string(' ', tabNum * 4) + line + Environment.NewLine);
+            return sb.ToString();
         }
 
         private async Task LoadDictionary()
         {
-            string[] lines = Resources.anhviet109K.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            string currentWord = null;
-            StringBuilder definitions = null;
-
-            foreach (string line in lines)
+            // Let the MainForm's constructor finish
+            await Task.Run(() =>
             {
-                if (line.StartsWith("@"))
+                string[] blocksOfWord = Resources.anhviet109K.Split(new[] { '@' }, StringSplitOptions.RemoveEmptyEntries);
+                string currentWord = null;
+                string pronunciation = null;
+                StringBuilder definition = null;
+                foreach(string block in blocksOfWord)
                 {
-                    // Nếu dòng bắt đầu bằng "@", đây là từ mới
-                    if (currentWord != null && definitions != null)
+                    string[]lines = block.Trim().Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    // First line is always a word & full-form/synonym/pronunciation (maybe)
+                    int firstSignIdx = lines[0].IndexOf('/');
+                    int lastSignIdx = lines[0].LastIndexOf('/');
+                    if (firstSignIdx != lastSignIdx)
                     {
-                        dictionary[currentWord] = definitions.ToString();
+                        // Word with pronunciation
+                        currentWord = lines[0].Substring(0, firstSignIdx).Trim();
+                        pronunciation = lines[0].Substring(firstSignIdx).Trim();
+                    }
+                    else
+                    {
+                        // Word with nothing or have only one '/'
+                        currentWord = lines[0].Trim();
+                        pronunciation = "";
                     }
 
-                    currentWord = line.Substring(1).Trim();
-                    definitions = new StringBuilder();
-                }
-                else
-                {
-                    definitions.Append(line.Trim());
-                    definitions.Append("\n");
-                }
-            }
+                    // Add header to dictionary
+                    if (!dictionary.ContainsKey(currentWord))
+                    {
+                        // New word
+                        dictionary[currentWord] = new WordEntry();
+                        dictionary[currentWord].Pronunciation = pronunciation;
+                        definition = new StringBuilder();
+                    }
+                    else if (!dictionary[currentWord].Pronunciation.Equals(pronunciation)
+                            && pronunciation.StartsWith("("))
+                    {
+                        // Existed word but more advanced
+                        definition.Append("@" + pronunciation);
+                        definition.Append(Environment.NewLine);
+                    }
 
-            for (int i = 0; i < 30; i++)
-            {
-                beforeTB.Text += dictionary.ElementAt(i).ToString();
-            }
+                    // Add definition
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        definition.Append(ProcessDefinitionLine(lines[i]));
+                    }
+
+                    // Assign to Definitions
+                    dictionary[currentWord].Definitions += definition.ToString();
+                    definition.Clear();
+                }
+                tbWord.Text = dictionary.Count.ToString();
+            });
         }
     }
 }
