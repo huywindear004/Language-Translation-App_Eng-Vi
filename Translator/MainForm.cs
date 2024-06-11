@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
-using System.Web.Script.Serialization;
-using System.Drawing;
 using System.Threading.Tasks;
+using System.Web.Script.Serialization;
+using System.Windows.Forms;
 using Translator.Properties;
 
 namespace Translator
@@ -98,7 +98,6 @@ namespace Translator
             if (string.IsNullOrWhiteSpace(beforeTB.SelectedText))
                 return;
             afterTB.Text = await TranslateTextOnline(beforeTB.SelectedText);
-            tbWord.Text = TranslateWord(beforeTB.SelectedText);
         }
 
         private void btnSwap_Click(object sender, EventArgs e)
@@ -198,7 +197,7 @@ namespace Translator
 
         private string TranslateWord(string input)
         {
-            char[] trimChars = { ' ', '.', ',', ';', '_', '-', '?', '!', '\"', '\'', '@', '/', '(', ')', '{', '}', '\n'};
+            char[] trimChars = { ' ', '.', ',', ';', '_', '-', '?', '!', '\"', '\'', '@', '/', '(', ')', '{', '}', '\n' };
             string toFind = input.Trim(trimChars);
 
             if (dictionary.ContainsKey(toFind))
@@ -244,9 +243,9 @@ namespace Translator
                 string currentWord = null;
                 string pronunciation = null;
                 StringBuilder definition = null;
-                foreach(string block in blocksOfWord)
+                foreach (string block in blocksOfWord)
                 {
-                    string[]lines = block.Trim().Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] lines = block.Trim().Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
                     // First line is always a word & full-form/synonym/pronunciation (maybe)
                     int firstSignIdx = lines[0].IndexOf('/');
